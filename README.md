@@ -1,3 +1,5 @@
+![Banner](banner.png)
+
 # analyze-process-behavior
 Analyzes process behavior (e.g., system calls, network connections, file access) to detect anomalies and potential malicious activity using a lightweight tracing mechanism like `ptrace` or systemtap on Linux, or ETW on Windows. A simple scoring system based on frequency of calls can be implemented to flag suspicious processes. - Focused on Data analysis and reporting
 
