@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import pandas as pd
+import random
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -64,9 +65,13 @@ def trace_process(pid, duration):
 
     logging.info(f"Tracing process {pid} for {duration} seconds. This is a placeholder implementation.")
 
+    # Invariant a reader must not miss: nothing below observes the target
+    # process. The pid is validated by the caller but never read here, and
+    # the counts are drawn at random, so the anomaly column in the output
+    # shows the scoring mechanics only. It is not evidence about the pid.
+
     # Placeholder data (replace with real syscall data collection)
     syscall_data = []
-    import random  #Imported here as it is only used in the placeholder
     start_time = time.time()
     while time.time() - start_time < duration:
       # Simulate some system calls
@@ -132,7 +137,7 @@ def main():
         if not isinstance(pid, int) or pid <= 0:
             raise ValueError("Invalid PID. PID must be a positive integer.")
 
-        # Check if the process exists (more robust validation)
+        # Check if the process exists (a stronger check than the type test above)
         try:
             os.kill(pid, 0)  # Signals the process, but doesn't kill it (signal 0)
         except OSError:
@@ -148,9 +153,9 @@ def main():
         if not isinstance(output_file, str):
             raise ValueError("Invalid output file name.  Must be a string.")
 
-        # Basic path sanitization to prevent path traversal
-        output_file = os.path.basename(output_file)
-
+        # The output path is honoured as given. An earlier version reduced
+        # it to its basename, which silently wrote the report into the
+        # working directory when the caller asked for a path in a folder.
         if not output_file.endswith(".csv"):
             output_file += ".csv"
 
