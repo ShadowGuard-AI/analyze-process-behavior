@@ -3,176 +3,240 @@ import logging
 import os
 import sys
 import time
+
 import pandas as pd
-import random
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 def setup_argparse():
-    """
-    Sets up the argument parser for the command-line interface.
-    """
+    """Sets up the argument parser for the command-line interface."""
     parser = argparse.ArgumentParser(
-        description="Analyzes process behavior to detect anomalies and potential malicious activity."
+        description="Samples a process through /proc on Linux and reports measured values and deltas over the sampling window."
     )
-
     parser.add_argument(
-        "-p",
-        "--pid",
-        type=int,
-        help="Process ID to analyze.  If not provided, attempts to trace the current process.",
-        required=False
+        "-p", "--pid", type=int, required=False,
+        help="Process ID to analyze. If not provided, samples the current process.",
     )
-
     parser.add_argument(
-        "-o",
-        "--output",
-        type=str,
-        default="process_analysis.csv",
-        help="Output CSV file to store the analysis results (default: process_analysis.csv)."
+        "-o", "--output", type=str, default="process_analysis.csv",
+        help="Output CSV file to store the analysis results (default: process_analysis.csv).",
     )
-
     parser.add_argument(
-        "-t",
-        "--trace_duration",
-        type=int,
-        default=10,
-        help="Duration in seconds to trace the process (default: 10 seconds)."
+        "-t", "--trace_duration", type=int, default=10,
+        help="Duration in seconds to sample the process (default: 10 seconds).",
     )
-
     parser.add_argument(
-        "-l",
-        "--log_level",
-        type=str,
-        default="INFO",
+        "-l", "--log_level", type=str, default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Set the logging level (default: INFO)."
+        help="Set the logging level (default: INFO).",
     )
-
-
     return parser.parse_args()
 
+
+def _read_text(path):
+    with open(path, "r", encoding="utf-8", errors="replace") as f:
+        return f.read()
+
+
+def sample_process(pid):
+    """Read one real sample of the named process from /proc.
+
+    Raises FileNotFoundError if the process is gone and PermissionError
+    if a file cannot be read by this user.
+    """
+    base = f"/proc/{pid}"
+    if not os.path.isdir(base):
+        raise FileNotFoundError(f"Process with PID {pid} does not exist.")
+
+    sample = {}
+
+    status = _read_text(os.path.join(base, "status"))
+    for line in status.splitlines():
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        value = value.strip()
+        if key == "State":
+            sample["state"] = value
+        elif key == "Threads":
+            sample["threads"] = int(value)
+        elif key == "voluntary_ctxt_switches":
+            sample["voluntary_ctxt_switches"] = int(value)
+        elif key == "nonvoluntary_ctxt_switches":
+            sample["nonvoluntary_ctxt_switches"] = int(value)
+
+    stat_text = _read_text(os.path.join(base, "stat"))
+    # Field 2 (comm) is in parentheses and may contain spaces, so parse
+    # the fields after the last closing parenthesis.
+    rest = stat_text[stat_text.rfind(")") + 2:].split()
+    # rest[0] is field 3 (state); utime is field 14, stime field 15,
+    # num_threads field 20.
+    sample["utime_ticks"] = int(rest[11])
+    sample["stime_ticks"] = int(rest[12])
+    sample["num_threads_stat"] = int(rest[17])
+
+    try:
+        io_text = _read_text(os.path.join(base, "io"))
+        for line in io_text.splitlines():
+            if ":" not in line:
+                continue
+            key, _, value = line.partition(":")
+            key = key.strip()
+            if key in ("syscr", "syscw", "read_bytes", "write_bytes"):
+                sample[key] = int(value.strip())
+    except (FileNotFoundError, PermissionError, OSError):
+        # /proc/<pid>/io is not readable for every process and user.
+        # Those counters are simply omitted from the report.
+        pass
+
+    try:
+        sample["open_fds"] = len(os.listdir(os.path.join(base, "fd")))
+    except OSError:
+        pass
+
+    children = set()
+    try:
+        for task in os.listdir(os.path.join(base, "task")):
+            children_file = os.path.join(base, "task", task, "children")
+            try:
+                for token in _read_text(children_file).split():
+                    children.add(int(token))
+            except (FileNotFoundError, PermissionError, OSError, ValueError):
+                continue
+    except OSError:
+        pass
+    sample["child_pids"] = sorted(children)
+    sample["child_count"] = len(children)
+    return sample
+
+
+NUMERIC_METRICS = [
+    "utime_ticks",
+    "stime_ticks",
+    "threads",
+    "voluntary_ctxt_switches",
+    "nonvoluntary_ctxt_switches",
+    "syscr",
+    "syscw",
+    "read_bytes",
+    "write_bytes",
+    "open_fds",
+    "child_count",
+]
+
+
 def trace_process(pid, duration):
+    """Sample the named PID at the start and end of the window.
+
+    Returns (start_sample, end_sample, elapsed_seconds). Every value
+    comes from /proc for that PID; nothing is simulated.
     """
-    Traces a process and collects system call information.
-    This is a placeholder implementation.  A real implementation would
-    use ptrace, systemtap, or ETW to collect system call data.
-    """
-
-    # Security best practice:  Avoid direct shell commands.  A real implementation
-    # would interact with the OS directly via system calls (e.g., using ctypes).
-
-    logging.info(f"Tracing process {pid} for {duration} seconds. This is a placeholder implementation.")
-
-    # Invariant a reader must not miss: nothing below observes the target
-    # process. The pid is validated by the caller but never read here, and
-    # the counts are drawn at random, so the anomaly column in the output
-    # shows the scoring mechanics only. It is not evidence about the pid.
-
-    # Placeholder data (replace with real syscall data collection)
-    syscall_data = []
+    start = sample_process(pid)
     start_time = time.time()
-    while time.time() - start_time < duration:
-      # Simulate some system calls
-      syscalls = ["read", "write", "open", "close", "connect", "accept"]
-      syscall = random.choice(syscalls)
-      count = random.randint(1,5)
-      syscall_data.append({"timestamp": time.time(), "syscall": syscall, "count": count})
-      time.sleep(0.1) # Simulate some activity
+    remaining = duration
+    while remaining > 0:
+        step = min(0.5, remaining)
+        time.sleep(step)
+        remaining -= step
+        # Fail promptly if the process exits during the window.
+        if not os.path.isdir(f"/proc/{pid}"):
+            raise FileNotFoundError(
+                f"Process with PID {pid} exited during sampling."
+            )
+    end = sample_process(pid)
+    elapsed = time.time() - start_time
+    return start, end, elapsed
 
 
-    return syscall_data
-
-def analyze_syscalls(syscall_data):
-    """
-    Analyzes the collected system call data.
-
-    This is a very basic anomaly detection example. A real implementation
-    would use more sophisticated techniques.
-    """
-
-    df = pd.DataFrame(syscall_data)
-    if df.empty:
-        logging.warning("No syscall data to analyze.")
-        return pd.DataFrame()
-
-    logging.info("Analyzing syscall data...")
-
-    syscall_counts = df['syscall'].value_counts().reset_index()
-    syscall_counts.columns = ['syscall', 'count']
-
-    # Simple anomaly detection: Flag syscalls with unusually high frequency
-    mean_count = syscall_counts['count'].mean()
-    std_count = syscall_counts['count'].std()
-
-    # Check for zero standard deviation
-    if std_count == 0:
-      threshold = mean_count * 2
-    else:
-      threshold = mean_count + 2 * std_count
-
-
-    syscall_counts['is_anomalous'] = syscall_counts['count'] > threshold
-
-    return syscall_counts
+def build_report(pid, duration, start, end, elapsed):
+    """Build one row per real measured quantity."""
+    rows = []
+    rows.append({
+        "pid": pid, "duration_seconds": round(elapsed, 3),
+        "metric": "state",
+        "start_value": start.get("state", ""), "end_value": end.get("state", ""),
+        "delta": "", "per_second": "", "note": "Process state from /proc status at start and end.",
+    })
+    rows.append({
+        "pid": pid, "duration_seconds": round(elapsed, 3),
+        "metric": "child_pids",
+        "start_value": " ".join(str(c) for c in start.get("child_pids", [])),
+        "end_value": " ".join(str(c) for c in end.get("child_pids", [])),
+        "delta": "", "per_second": "", "note": "Child PIDs listed under /proc task children at end of window.",
+    })
+    for metric in NUMERIC_METRICS:
+        if metric not in start or metric not in end:
+            continue
+        delta = end[metric] - start[metric]
+        per_second = round(delta / elapsed, 3) if elapsed > 0 else ""
+        note = ""
+        if metric in ("voluntary_ctxt_switches", "nonvoluntary_ctxt_switches"):
+            note = "Measured count only. No anomaly verdict is computed."
+        rows.append({
+            "pid": pid, "duration_seconds": round(elapsed, 3),
+            "metric": metric,
+            "start_value": start[metric], "end_value": end[metric],
+            "delta": delta, "per_second": per_second, "note": note,
+        })
+    total_switches = 0
+    counted = False
+    for metric in ("voluntary_ctxt_switches", "nonvoluntary_ctxt_switches"):
+        if metric in start and metric in end:
+            total_switches += end[metric] - start[metric]
+            counted = True
+    if counted and elapsed > 0:
+        rate = round(total_switches / elapsed, 3)
+        rows.append({
+            "pid": pid, "duration_seconds": round(elapsed, 3),
+            "metric": "context_switches_per_second",
+            "start_value": "", "end_value": "",
+            "delta": total_switches, "per_second": rate,
+            "note": "Total context switches divided by the sampling duration. This is a measured rate, not a verdict on the process.",
+        })
+    return pd.DataFrame(rows)
 
 
 def main():
-    """
-    Main function to orchestrate the process analysis.
-    """
     args = setup_argparse()
-
-    # Set the logging level
     logging.getLogger().setLevel(args.log_level.upper())
-
     try:
         pid = args.pid
         if pid is None:
-            pid = os.getpid() # Analyze the current process if no PID is specified
-            logging.info(f"No PID specified, analyzing the current process with PID {pid}")
-
-        # Input validation: Check if the PID is valid.  This is a basic check.
+            pid = os.getpid()
+            logging.info(f"No PID specified, sampling the current process with PID {pid}")
         if not isinstance(pid, int) or pid <= 0:
             raise ValueError("Invalid PID. PID must be a positive integer.")
-
-        # Check if the process exists (a stronger check than the type test above)
         try:
-            os.kill(pid, 0)  # Signals the process, but doesn't kill it (signal 0)
+            os.kill(pid, 0)
         except OSError:
             raise ValueError(f"Process with PID {pid} does not exist or cannot be accessed.")
-
         trace_duration = args.trace_duration
         if not isinstance(trace_duration, int) or trace_duration <= 0:
             raise ValueError("Invalid trace duration. Duration must be a positive integer.")
-
         output_file = args.output
-
-        # Sanitize the output file path
         if not isinstance(output_file, str):
-            raise ValueError("Invalid output file name.  Must be a string.")
-
-        # The output path is honoured as given. An earlier version reduced
-        # it to its basename, which silently wrote the report into the
-        # working directory when the caller asked for a path in a folder.
+            raise ValueError("Invalid output file name. Must be a string.")
         if not output_file.endswith(".csv"):
             output_file += ".csv"
 
-
-        # Perform the analysis
-        syscall_data = trace_process(pid, trace_duration)
-        analysis_results = analyze_syscalls(syscall_data)
-
-
-        # Output the results
-        if not analysis_results.empty:
-            analysis_results.to_csv(output_file, index=False)
-            logging.info(f"Analysis results saved to {output_file}")
-        else:
-            logging.warning("No analysis results to save.")
-
-
+        logging.info(f"Sampling process {pid} through /proc for {trace_duration} seconds.")
+        start, end, elapsed = trace_process(pid, trace_duration)
+        report = build_report(pid, trace_duration, start, end, elapsed)
+        if report.empty:
+            logging.error("No measured data was collected.")
+            sys.exit(1)
+        try:
+            report.to_csv(output_file, index=False)
+        except Exception as e:
+            logging.error(f"Could not write output CSV {output_file}: {e}")
+            sys.exit(1)
+        logging.info(f"Analysis results saved to {output_file}")
+        print(report.to_string(index=False))
+    except FileNotFoundError as e:
+        logging.error(str(e))
+        sys.exit(1)
     except ValueError as e:
         logging.error(f"Invalid input: {e}")
         sys.exit(1)
@@ -182,8 +246,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # Example usage:
-    # python main.py -p <PID> -t 15 -o my_analysis.csv --log_level DEBUG
-    # python main.py -t 5  # Analyze the current process for 5 seconds
-    # python main.py  # Analyze the current process for 10 seconds, default output
     main()
