@@ -133,6 +133,14 @@ def trace_process(pid, duration):
     Returns (start_sample, end_sample, elapsed_seconds). Every value
     comes from /proc for that PID; nothing is simulated.
     """
+    # Two samples only, one at each end. Everything the report says is
+    # a difference across the whole window, so a burst of activity in
+    # the middle and the same total spread evenly are indistinguishable,
+    # and the per second figures are window averages, not a timeline.
+    # The existence check in the loop below only proves some process
+    # holds the PID; if the original exited and the PID was reused
+    # inside the window, the end sample belongs to a different process
+    # and the deltas mix two lifetimes without any sign of it.
     start = sample_process(pid)
     start_time = time.time()
     remaining = duration
@@ -167,9 +175,18 @@ def build_report(pid, duration, start, end, elapsed):
         "delta": "", "per_second": "", "note": "Child PIDs listed under /proc task children at end of window.",
     })
     for metric in NUMERIC_METRICS:
+        # A metric missing from either sample is skipped in silence.
+        # The io counters are the usual case: unreadable at one end
+        # means no row at all, rather than a row saying unknown, so
+        # two reports on the same process can list different metrics.
         if metric not in start or metric not in end:
             continue
         delta = end[metric] - start[metric]
+        # utime and stime stay in clock ticks, the unit /proc reports.
+        # Their per second column is ticks per second, and converting
+        # to CPU seconds needs the tick rate, which this report never
+        # looks up. Comparing the number across machines with different
+        # tick rates would be comparing different units.
         per_second = round(delta / elapsed, 3) if elapsed > 0 else ""
         note = ""
         if metric in ("voluntary_ctxt_switches", "nonvoluntary_ctxt_switches"):
@@ -211,6 +228,10 @@ def main():
         try:
             os.kill(pid, 0)
         except OSError:
+            # Signal 0 tests existence and permission together, so a
+            # process owned by another user lands in this same message
+            # as one that does not exist. The wording keeps both
+            # because this check cannot separate them.
             raise ValueError(f"Process with PID {pid} does not exist or cannot be accessed.")
         trace_duration = args.trace_duration
         if not isinstance(trace_duration, int) or trace_duration <= 0:
