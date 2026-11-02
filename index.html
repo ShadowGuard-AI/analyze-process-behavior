@@ -3,162 +3,114 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Analyze Process Behavior: what it is, how it runs, where it stops</title>
-<meta name="description" content="Analyze Process Behavior is one of my projects. The README in the repo is short, so this page sticks to what the files themselves show.">
+<title>analyze-process-behavior: The Zodiacal Light Before Dawn</title>
+<meta name="description" content="Samples a named process on Linux through /proc at the start and end of a sampling window and reports measured values and deltas, with a context switches per second rate stated as a number only.">
 <style>
-:root {
-  --bg: #181c3a; --panel: #22284e; --ink: #eeeef6;
-  --mut: #2d3669;
-  --acc: #7eb8f7; --acc2: #f7ba7e;
-  --line: #22284e;
-}
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink);
-  font-family: 'Palatino Linotype', Palatino, serif; line-height: 1.55; }
-code, pre, .mono { font-family: 'Menlo', monospace; }
-a { color: var(--acc2); }
-.hero { padding: 3rem 6vw 1rem; }
-.hero img.banner { width: 100%; height: auto; border: 1px solid var(--line);
-  border-radius: 10px; }
-.logo { width: 92px; height: 92px; border-radius: 18px;
-  border: 1px solid var(--line); }
-h1 { font-size: 2.4rem; margin: 0.4em 0 0.1em; }
-h2 { border-bottom: 2px solid var(--acc); padding-bottom: 0.2em;
-  margin-top: 2em; }
-.lede { font-size: 1.15rem; max-width: 62ch; }
-main { padding: 0 6vw 3rem; max-width: 1180px; margin: 0 auto; }
-.grid { display: grid; gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
-.card { background: var(--panel); border: 1px solid var(--line);
-  border-radius: 12px; padding: 1rem 1.2rem; }
-.card.pop { animation: rise 0.7s ease both; }
-@keyframes rise { from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: none; } }
-pre.code { background: #101014; color: #e8e6df; padding: 1rem 1.2rem;
-  border-radius: 12px; overflow-x: auto; font-size: 0.86rem;
-  border-left: 5px solid var(--acc); }
-table { border-collapse: collapse; width: 100%; }
-td, th { border-bottom: 1px solid var(--line); padding: 0.45rem 0.6rem;
-  text-align: left; }
-.shots { display: grid; gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-.shots img { width: 100%; height: auto; border: 1px solid var(--line);
-  border-radius: 10px; background: #f4f1e8; }
-footer { padding: 2rem 6vw; border-top: 1px solid var(--line);
-  color: var(--mut); }
-.rail { display: flex; gap: 1.2rem; align-items: flex-start; }
-.rail nav { position: sticky; top: 1rem; min-width: 180px; }
-@media (max-width: 760px) { .rail { flex-direction: column; }
-  .rail nav { position: static; } }
-@media (prefers-reduced-motion: reduce) {
-  .card.pop { animation: none; } * { scroll-behavior: auto; } }
+@font-face{font-family:'B612 Mono';src:url('fonts/B612Mono.ttf') format('truetype');}
+@font-face{font-family:'Cabin';src:url('fonts/Cabin.ttf') format('truetype');}
+:root{--violet:#241b33;--deep:#161126;--white:#f4f6ff;--grey:#9aa0a8;--panel:#8f8a9c;--copper:#b87333;--ink:#1d1829}
+*{box-sizing:border-box}body{margin:0;background:var(--violet);color:var(--white);font-family:'Cabin',sans-serif;line-height:1.7}
+h1,h2,h3{font-family:'B612 Mono',monospace}
+.hero{min-height:100vh;display:flex;flex-direction:column;background:var(--violet)}
+.hero img.heroimg{width:100%;height:64vh;object-fit:cover;display:block}
+.hero .in{padding:1rem 6vw 1.6rem;max-width:1120px;margin:0 auto;width:100%}
+.logo{width:180px;border:1px solid var(--copper)}
+.horizon-rule{height:3px;background:var(--copper);border:0;margin:0}
+main{padding:0 6vw 3rem;max-width:1120px;margin:0 auto}
+nav{display:flex;gap:.8rem;flex-wrap:wrap;margin:1.1rem 0 .4rem}
+.hbtn{display:inline-block;text-decoration:none;text-align:center;color:var(--violet);font-family:'B612 Mono',monospace;font-size:.92rem;padding:.65rem 1.4rem;background:linear-gradient(to right,rgba(244,246,255,.85),rgba(244,246,255,.12) 75%),var(--grey);border-bottom:3px solid var(--copper);transition:filter .15s,border-bottom-width .1s}
+.hbtn:hover{filter:brightness(1.13)}
+.hbtn:active{background:var(--violet);color:var(--white)}
+.hbtn:focus-visible{outline:none;border-bottom-width:7px}
+a{color:#e8c39a;text-decoration:none}
+a .vane{display:inline-block;color:var(--copper);margin-right:.45em;transition:transform .18s;font-style:normal}
+a:hover .vane{transform:rotate(-16deg)}
+.card{background:var(--panel);color:var(--ink);margin:1.8rem 0;padding:0 1.5rem 1.3rem;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.card .band{background:var(--copper);color:var(--violet);margin:0 -1.5rem 1rem;padding:.45rem 1.5rem}
+.card .band h2{margin:0;font-size:1.15rem}
+.card .foot{border-top:2px solid var(--violet);padding-top:.6rem;margin-top:1rem}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+.cols ul{margin:.4rem 0;padding-left:1.2rem}
+pre{background:var(--deep);color:var(--white);padding:1rem;overflow-x:auto;font-family:'B612 Mono',monospace;font-size:.9rem}
+.rate{font-family:'B612 Mono',monospace;font-size:1.3rem;text-align:center;padding:1rem .6rem;border:1px solid var(--violet)}
+.diag{list-style:none;margin:0;padding:0}
+.diag li{background:rgba(36,27,51,.14);border-bottom:3px solid var(--copper);padding:.55rem .9rem;margin:.55rem 0;font-family:'B612 Mono',monospace;font-size:.92rem}
+.diag li:nth-child(1){margin-right:38%}.diag li:nth-child(2){margin-left:9%;margin-right:29%}.diag li:nth-child(3){margin-left:19%;margin-right:19%}.diag li:nth-child(4){margin-left:29%;margin-right:9%}.diag li:nth-child(5){margin-left:38%}
+.diag li span{font-family:'Cabin',sans-serif}
+.divider{display:flex;align-items:center;gap:0;margin:2.4rem 0}
+.divider .rule{flex:1;height:2px;background:var(--copper)}
+.divider .tri{width:0;height:0;border-left:15px solid transparent;border-right:15px solid transparent;border-bottom:26px solid rgba(244,246,255,.55);transform:rotate(14deg);margin-left:12%}
+footer{padding:0 6vw 2.6rem;max-width:1120px;margin:0 auto}
+.note{border-left:5px solid var(--copper);background:rgba(244,246,255,.1);padding:.6rem 1rem}
 </style>
 </head>
-<body class="layout-grid">
-<!-- This page exists for analyze-process-behavior alone: the layout (console-grid),
-     the colors, and the type were picked for this project, not
-     shared with the other project pages. The code block below is
-     copied from the file it names, line for line. If it looks
-     plain, that is because the project is plain, and I would
-     rather the page match the project than dress it up. The one
-     thing I will not do here is oversell: what this project does
-     not do is stated on the page, not hidden from it. -->
+<body>
 <header class="hero">
-  <img class="logo" src="assets/logo.png" alt="Analyze Process Behavior logo">
-  <img class="banner" src="assets/banner.png" alt="">
-  <h1>Analyze Process Behavior</h1>
-  <p class="mono"><a href="https://github.com/ShadowGuard-AI/analyze-process-behavior">github.com/ShadowGuard-AI/analyze-process-behavior</a></p>
+<img class="heroimg" src="assets/intro-banner.png" alt="Dark countryside before dawn: a tilted pyramid of pale light over empty fields, a hedgerow in silhouette, a barn and vane at the far left, no text">
+<div class="in">
+<img class="logo" src="assets/logo.png" alt="A leaning triangle of pale light on a copper horizon line, the name set in spaced mono letters beneath it">
+<h1>analyze-process-behavior</h1>
+<p>A single pre dawn watching session, ordered from first sighting to last reading. The tool looks twice, once at the opening of a sampling window and once at its close, then sets the two looks side by side.</p>
+<nav>
+<a class="hbtn" href="#sampled">What gets sampled</a>
+<a class="hbtn" href="#rate">The one rate</a>
+<a class="hbtn" href="#running">Getting it and running it</a>
+<a class="hbtn" href="#controls">The five controls</a>
+<a class="hbtn" href="#failure">Failure and licence</a>
+</nav>
+</div>
 </header>
-
+<hr class="horizon-rule">
 <main>
-  <section class="rail">
-    <nav aria-label="on this page">
-      <p class="mono"><a href="#run">Run it</a><br>
-      <a href="#files">The files</a><br>
-      <a href="#sheets">The sheets</a><br>
-      <a href="https://github.com/ShadowGuard-AI/analyze-process-behavior">The repo</a></p>
-    </nav>
-    <div>
-      <p class="lede">Analyze Process Behavior is one of my projects. The README in the repo is short, so this page sticks to what the files themselves show.</p>
-      <div class="grid">
-        <div class="card pop"><h3>What it is</h3>
-          <p>Analyze Process Behavior: 3 files, 203 counted
-          lines across Python 184, Markdown 18, Text 1. One job, done in the
-          open, in files you can read.</p></div>
-        <div class="card pop"><h3>The biggest piece</h3>
-          <p><code>main.py</code> carries the most
-          lines. If the project grows, that file is where the growth
-          lands first, for better or worse.</p></div>
-        <div class="card pop"><h3>The honest gap</h3>
-          <p>No test files yet. That is the honest gap, and the roadmap in the visuals folder says what the first one should cover.</p></div>
-      </div>
-      <section id="run">
-        <h2>Run it</h2>
-        <p>The repo README has the exact commands for this one. The
-        shape is the shape for most of my projects: clone it, read the
-        top file first so you know what will happen, then run it on
-        something you do not mind breaking.</p>
-        <p class="mono">$ git clone https://github.com/ShadowGuard-AI/analyze-process-behavior.git<br>$ cd analyze-process-behavior</p>
-      </section>
-      
-  <section aria-label="real code">
-    <h2>The code, as it sits in the repo</h2>
-    <p>From <code>main.py</code>, line 9 on. I did
-    not tidy it for the page. What you see is what the file has.</p>
-    <pre class="code"><code>logging.basicConfig(level=logging.INFO, format=&#x27;%(asctime)s - %(levelname)s - %(message)s&#x27;)
-
-def setup_argparse():
-    &quot;&quot;&quot;
-    Sets up the argument parser for the command-line interface.
-    &quot;&quot;&quot;
-    parser = argparse.ArgumentParser(
-        description=&quot;Analyzes process behavior to detect anomalies and potential malicious activity.&quot;
-    )
-
-    parser.add_argument(
-        &quot;-p&quot;,
-        &quot;--pid&quot;,
-        type=int,
-        help=&quot;Process ID to analyze.  If not provided, attempts to trace the current process.&quot;,
-        required=False
-    )
-
-    parser.add_argument(
-        &quot;-o&quot;,
-        &quot;--output&quot;,
-        type=str,</code></pre>
-  </section>
-      <section id="files">
-        <h2>The files that matter</h2>
-        <table><tr><th>File</th><th>Lines</th></tr>
-        <tr><td><code>main.py</code></td><td>184</td></tr>
-        <tr><td><code>README.md</code></td><td>18</td></tr>
-        <tr><td><code>requirements.txt</code></td><td>1</td></tr>
-        </table>
-        <p>Names doing the work: <span class="mono">setup_argparse, trace_process, analyze_syscalls, main</span>.</p>
-      </section>
-      <section id="sheets">
-        <h2>Drawn by hand</h2>
-        <p>I sketch my projects on notebook paper so I have to
-        understand them well enough to draw them. The full set,
-        with the counts and how they were counted, is the
-        <a href="https://github.com/ShadowGuard-AI/analyze-process-behavior/tree/main/analyze-process-behavior-Visuals">analyze-process-behavior-Visuals</a>
-        folder in the repo. Nothing is drawn over the binder holes.
-        That is a rule, not a style.</p>
-        <div class="shots">
-          <img src="assets/architecture.png" alt="Hand drawn architecture sheet for Analyze Process Behavior">
-          <img src="assets/flowchart.png" alt="Hand drawn flowchart sheet for Analyze Process Behavior">
-          <img src="assets/product-map.png" alt="Hand drawn product map sheet for Analyze Process Behavior">
-        </div>
-      </section>
-    </div>
-  </section>
+<section class="card" id="sampled">
+<div class="band"><h2>First watch point: what gets sampled</h2></div>
+<p>analyze-process-behavior samples a named process on Linux through /proc at the start and at the end of a sampling window. The panel lists exactly what the source lists, in two columns.</p>
+<div class="cols">
+<div><h3>At the start</h3><ul>
+<li>process state</li><li>thread count</li><li>user and system CPU ticks</li><li>voluntary and nonvoluntary context switches</li><li>read and write syscall counters and byte counters where readable</li><li>open file descriptor count</li><li>child PIDs</li>
+</ul></div>
+<div><h3>At the end</h3><ul>
+<li>process state</li><li>thread count</li><li>user and system CPU ticks</li><li>voluntary and nonvoluntary context switches</li><li>read and write syscall counters and byte counters where readable</li><li>open file descriptor count</li><li>child PIDs</li>
+</ul></div>
+</div>
+<p class="foot">The CSV carries the PID and the sampling duration, and each row is a measured quantity.</p>
+</section>
+<div class="divider"><span class="tri"></span><span class="rule"></span></div>
+<section class="card" id="rate">
+<div class="band"><h2>Second watch point: the one rate and the refusal to judge</h2></div>
+<p class="rate">The report includes a context switches per second rate, as a number only.</p>
+<p>Beside that sentence stands its companion fact: the tool makes no anomaly or malicious activity verdict. No gauge, no red zone, and no pass or fail badge appears here, because the source offers none.</p>
+</section>
+<div class="divider"><span class="tri"></span><span class="rule"></span></div>
+<section class="card" id="running">
+<div class="band"><h2>Third watch point: getting it and running it</h2></div>
+<pre>git clone https://github.com/ShadowGuardAI/analyze-process-behavior
+./analyze-process-behavior [params]</pre>
+<p class="note">Note before copying: the clone address names the account as ShadowGuardAI without a hyphen, while the repository itself sits under ShadowGuard-AI.</p>
+<p><a href="https://github.com/ShadowGuard-AI/analyze-process-behavior"><i class="vane">&#10148;</i>The repository on GitHub</a></p>
+</section>
+<div class="divider"><span class="tri"></span><span class="rule"></span></div>
+<section class="card" id="controls">
+<div class="band"><h2>Fourth watch point: the five controls</h2></div>
+<p>Laid along a rising diagonal that echoes the tilt of the light:</p>
+<ul class="diag">
+<li>-h <span>shows the help message and exits.</span></li>
+<li>-p <span>takes the process ID to analyze, and if none is provided the tool attempts to trace the current process.</span></li>
+<li>-o <span>names the output CSV file holding the analysis results, default process_analysis.csv.</span></li>
+<li>-t <span>sets the duration in seconds for sampling, default 10 seconds.</span></li>
+<li>-l <span>sets the logging level, default INFO.</span></li>
+</ul>
+<p class="foot">The source also groups the tool under data analysis and reporting, printed here as written: Focused on Data analysis and reporting.</p>
+</section>
+<div class="divider"><span class="tri"></span><span class="rule"></span></div>
+<section class="card" id="failure">
+<div class="band"><h2>Fifth watch point: failure and licence</h2></div>
+<p>A PID that does not exist, or that exits during sampling, ends the run at exit 1. That condition is stated here in plain type, not dressed as an alarm.</p>
+<p>Licence, reproduced as written: Copyright (c) ShadowGuardAI. No licence is named in the source.</p>
+</section>
 </main>
-<footer>
-  <p>Analyze Process Behavior is one of my projects. This page was written
-  from the repo itself on 2026-10-30: the counts are the
-  repo's counts, the code is the repo's code, and the gaps are the
-  repo's gaps.</p>
-</footer>
+<hr class="horizon-rule">
+<footer><p>Theme: the zodiacal light before dawn. Type: B612 Mono for headings, Cabin for reading, both SIL Open Font License 1.1. The lettering reference N-Gage was reference only and is not embedded.</p></footer>
 </body>
 </html>
