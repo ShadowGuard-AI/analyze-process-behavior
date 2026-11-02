@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 40" role="img" aria-label="Satellite crossing divider">
+<line x1="0" y1="22" x2="1200" y2="22" stroke="#b87333" stroke-width="2"/>
+<g>
+<animateTransform attributeName="transform" type="translate" values="-60,0; 1260,0" dur="11s" repeatCount="indefinite"/>
+<rect x="0" y="16" width="16" height="7" fill="#9aa0a8"/>
+<rect x="-9" y="18" width="8" height="3" fill="#6d7278"/><rect x="17" y="18" width="8" height="3" fill="#6d7278"/>
+<circle cx="8" cy="12" r="2.6" fill="#f4f6ff"><animate attributeName="opacity" values="1;0.1;1" dur="2.8s" repeatCount="indefinite"/></circle>
+</g></svg>

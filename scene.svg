@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-label="Night field in three bands: the light pyramid thins from its base as the cycle runs, the hedgerow and fields stay still while the barn vane turns once and holds, and the grass heads bend once at the brightest point">
+<rect x="0" y="0" width="1200" height="300" fill="#241b33"/>
+<g fill="#f4f6ff"><circle cx="120" cy="40" r="2"/><circle cx="300" cy="80" r="1.6"/><circle cx="520" cy="30" r="1.8"/><circle cx="980" cy="52" r="2"/><circle cx="1100" cy="110" r="1.6"/><circle cx="180" cy="130" r="1.4"/><circle cx="1060" cy="24" r="1.5"/><circle cx="60" cy="90" r="1.7"/></g>
+<g>
+<polygon points="560,208 980,208 742,36" fill="#f4f6ff" opacity="0.4">
+<animate attributeName="opacity" values="0.32;0.62;0.62;0.3;0.32" keyTimes="0;0.3;0.55;0.85;1" dur="24s" repeatCount="indefinite"/>
+</polygon>
+<polygon points="560,208 980,208 980,168 560,168" fill="#241b33" opacity="0">
+<animate attributeName="opacity" values="0;0;0.25;0.85;0" keyTimes="0;0.3;0.55;0.85;1" dur="24s" repeatCount="indefinite"/>
+</polygon>
+</g>
+<rect x="548" y="202" width="200" height="5" fill="#b87333"/><rect x="764" y="202" width="150" height="5" fill="#b87333"/><rect x="930" y="202" width="66" height="5" fill="#b87333"/>
+<polygon points="0,208 1200,208 1200,300 0,300" fill="#161126"/>
+<polygon points="0,208 0,168 52,146 112,168 112,208" fill="#0a0810"/>
+<g transform="translate(52,146)"><g>
+<animateTransform attributeName="transform" type="rotate" values="0;0;22;22;22;0" keyTimes="0;0.3;0.45;0.8;0.95;1" dur="24s" repeatCount="indefinite"/>
+<line x1="0" y1="0" x2="0" y2="-24" stroke="#0a0810" stroke-width="3"/>
+<polygon points="0,-24 24,-19 0,-15" fill="#0a0810"/>
+<line x1="-16" y1="-19" x2="0" y2="-19" stroke="#0a0810" stroke-width="3"/>
+</g></g>
+<polygon points="880,300 990,214 1024,214 1080,300" fill="#221a38"/>
+<g stroke="#c8ccd4" stroke-width="1.4">
+<g>
+<animateTransform attributeName="transform" type="rotate" values="0;0;5;0;0" keyTimes="0;0.28;0.34;0.42;1" dur="24s" repeatCount="indefinite"/>
+<line x1="930" y1="252" x2="928" y2="238"/><line x1="962" y1="262" x2="960" y2="248"/><line x1="1000" y1="246" x2="998" y2="232"/>
+</g></g>
+<g fill="#d8dce4"><ellipse cx="928" cy="236" rx="2" ry="2.6"/><ellipse cx="960" cy="246" rx="2" ry="2.6"/><ellipse cx="998" cy="230" rx="2" ry="2.6"/></g>
+<g fill="#080610"><ellipse cx="60" cy="292" rx="52" ry="20"/><ellipse cx="170" cy="296" rx="60" ry="22"/><ellipse cx="300" cy="292" rx="54" ry="20"/><ellipse cx="430" cy="296" rx="62" ry="22"/><ellipse cx="560" cy="292" rx="54" ry="20"/><ellipse cx="690" cy="296" rx="60" ry="22"/><ellipse cx="820" cy="292" rx="54" ry="20"/><ellipse cx="950" cy="296" rx="62" ry="22"/><ellipse cx="1080" cy="292" rx="56" ry="20"/><ellipse cx="1180" cy="296" rx="52" ry="22"/></g>
+</svg>
