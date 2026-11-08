@@ -1,10 +1,10 @@
-![Dark countryside before dawn: a tilted pyramid of pale light over empty fields, a hedgerow in silhouette, a barn and vane at the far left, nothing readable](intro-banner.png)
+![Tide staff close up on the harbour wall, its plain black and white bands rising above the returning water, the orange marker float riding large at its base and fishing boats afloat behind](intro-banner.png)
 
 # analyze-process-behavior
 
-![Dark countryside in the last hour before sunrise, the name painted small in faded white on the barn gable at the far left, the only writing in the scene](banner.png)
+![Harbour wall at low water with the banded tide staff at its centre right, the sea fallen to the lowest bands, wet stone and weed below the waterline, fishing boats resting on the harbour floor behind and one orange marker float tied at the staff's base](banner.png)
 
-![A leaning triangle of pale light on a thin copper horizon, stars brighter outside it than through it, the heading plate](logo.png)
+![Vertical tide staff straight on fixed to a grey harbour wall, plain black and white bands with no numerals or letters anywhere, the green water standing at its base and one small orange marker float bobbing beside it](logo.png)
 
 ![Night field scene: the light pyramid thins from its base across a long cycle, the vane turns once and holds, and the grass heads bend once at the brightest point](scene.svg)
 
