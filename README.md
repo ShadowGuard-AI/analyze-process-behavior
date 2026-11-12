@@ -9,8 +9,7 @@
 ![Night field scene: the light pyramid thins from its base across a long cycle, the vane turns once and holds, and the grass heads bend once at the brightest point](scene.svg)
 
 
-# analyze-process-behavior
-Samples a named process on Linux through /proc at the start and end of a sampling window and reports measured values and deltas: process state, thread count, user and system CPU ticks, voluntary and nonvoluntary context switches, read and write syscall counters and byte counters where readable, open file descriptor count, and child PIDs. The CSV carries the PID and the sampling duration, and each row is a measured quantity. The report includes a context switches per second rate as a number only; it makes no anomaly or malicious activity verdict. A PID that does not exist, or that exits during sampling, ends the run at exit 1. - Focused on Data analysis and reporting
+Samples a named process on Linux through /proc at the start and end of a sampling window and reports measured values and deltas: process state, thread count, user and system CPU ticks, voluntary and nonvoluntary context switches, read and write syscall counters and byte counters where readable, open file descriptor count, and child PIDs. The CSV carries the PID and the sampling duration, and each row is a measured quantity. The report includes a context switches per second rate as a number only; it makes no anomaly or malicious activity verdict. A PID that does not exist, or that exits during sampling, ends the run at exit 1, focusing on data analysis and reporting.
 
 > Dark sky note: a PID that does not exist, or that exits during sampling, ends the run at exit 1. That is the condition a first time user is most likely to trip over, stated where the measured list is given.
 
